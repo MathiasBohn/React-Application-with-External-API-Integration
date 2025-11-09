@@ -1,9 +1,52 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Cinema Vault
 
-## Getting Started
+A modern, cinematic movie search and comparison application built with Next.js 16, React 19, and the OMDb API. Search for movies, save your favorites, and compare multiple films side-by-side.
 
-First, run the development server:
+## Features
 
+- **Movie Search**: Search for movies, series, and episodes using the OMDb API
+- **Detailed Movie View**: View comprehensive movie details including plot, cast, ratings, and more
+- **Favorites System**: Save your favorite movies to local storage for quick access
+- **Movie Comparison**: Compare multiple movies side-by-side to see ratings, plot, cast, and other details
+- **Responsive Design**: Beautiful, cinematic UI with Tailwind CSS 4 and film-themed styling
+- **Next.js App Router**: Modern Next.js architecture with Server and Client Components
+
+## Tech Stack
+
+- **Framework**: Next.js 16.0.1 (App Router)
+- **React**: 19.2.0
+- **TypeScript**: Type-safe development
+- **Styling**: Tailwind CSS 4
+- **API**: OMDb API (Open Movie Database)
+- **Font Optimization**: Next.js font optimization with Geist Sans & Geist Mono
+
+## Setup Instructions
+
+### Prerequisites
+
+- Node.js 18+ installed
+- npm, yarn, pnpm, or bun package manager
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd react-application-with-external-api-integration
+```
+
+2. Install dependencies:
+```bash
+npm install
+# or
+yarn install
+# or
+pnpm install
+# or
+bun install
+```
+
+3. Run the development server:
 ```bash
 npm run dev
 # or
@@ -14,23 +57,169 @@ pnpm dev
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+4. Open [http://localhost:3000](http://localhost:3000) in your browser to see the application.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Available Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `npm run dev` - Start the development server with hot reload
+- `npm run build` - Create an optimized production build
+- `npm run start` - Start the production server (requires build first)
+- `npm run lint` - Run ESLint to check code quality
 
-## Learn More
+## API Information
 
-To learn more about Next.js, take a look at the following resources:
+### OMDb API (Open Movie Database)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+**Base URL**: `http://www.omdbapi.com/`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+**API Key**: Currently hardcoded in `lib/omdb.ts` (see Known Issues)
 
-## Deploy on Vercel
+#### Endpoints Used
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. **Search Movies**
+   - **Endpoint**: `/?apikey={API_KEY}&s={query}`
+   - **Example**: `http://www.omdbapi.com/?apikey=3c76c1c&s=Inception`
+   - **Purpose**: Search for movies by title
+   - **Returns**: Array of movie search results with basic info (title, year, poster, IMDb ID)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+2. **Get Movie Details**
+   - **Endpoint**: `/?apikey={API_KEY}&i={imdbID}`
+   - **Example**: `http://www.omdbapi.com/?apikey=3c76c1c&i=tt1375666`
+   - **Purpose**: Get full details for a specific movie using its IMDb ID
+   - **Returns**: Complete movie information including plot, cast, ratings, awards, etc.
+
+3. **Get Movie by Title**
+   - **Endpoint**: `/?apikey={API_KEY}&t={title}`
+   - **Example**: `http://www.omdbapi.com/?apikey=3c76c1c&t=Inception`
+   - **Purpose**: Search for an exact movie title match
+   - **Returns**: Full movie details
+
+**API Documentation**: [http://www.omdbapi.com/](http://www.omdbapi.com/)
+
+## Project Structure
+
+```
+react-application-with-external-api-integration/
+├── app/
+│   ├── layout.tsx              # Root layout with fonts and metadata
+│   ├── page.tsx                # Home page with movie search
+│   ├── globals.css             # Global Tailwind styles
+│   ├── movie/
+│   │   └── [imdbID]/
+│   │       └── page.tsx        # Dynamic route for movie details
+│   ├── favorites/
+│   │   └── page.tsx            # Favorites collection page
+│   └── compare/
+│       └── page.tsx            # Movie comparison page
+├── components/
+│   └── MovieCard.tsx           # Reusable movie card component
+├── lib/
+│   ├── omdb.ts                 # OMDb API functions
+│   └── types.ts                # TypeScript type definitions
+├── hooks/
+│   ├── useFavorites.ts         # Custom hook for favorites management
+│   └── useComparison.ts        # Custom hook for comparison feature
+└── public/                     # Static assets
+```
+
+## Features in Detail
+
+### Search Functionality
+- Real-time movie search using OMDb API
+- Search for movies, TV series, and episodes
+- Responsive grid layout displaying search results
+- Error handling for failed searches or no results
+
+### Movie Details Page
+- Dynamic routing with IMDb ID (`/movie/[imdbID]`)
+- Displays comprehensive movie information:
+  - Poster image with fallback placeholder
+  - Title, year, rating, runtime
+  - Genre, plot, director, writers, cast
+  - Multiple rating sources (IMDb, Rotten Tomatoes, Metacritic)
+  - Awards, language, country information
+- Add to favorites and comparison directly from detail page
+
+### Favorites System
+- Uses browser localStorage for persistence
+- Add/remove movies from favorites
+- View all favorites in dedicated page
+- Favorites counter in navigation
+
+### Movie Comparison
+- Compare up to multiple movies side-by-side
+- Visual comparison of ratings, plot, cast, and details
+- Add movies to comparison from search results or detail pages
+- Clear comparison list functionality
+
+## Known Issues & Challenges
+
+### 1. API Key Management
+**Issue**: The OMDb API key is currently hardcoded in `lib/omdb.ts:6`
+
+**Impact**: Security risk if repository is public; API key could be exposed and rate-limited
+
+**Recommended Solution**:
+- Create a `.env.local` file in the project root
+- Add: `NEXT_PUBLIC_OMDB_API_KEY=your_api_key_here`
+- Update `lib/omdb.ts` to use: `process.env.NEXT_PUBLIC_OMDB_API_KEY`
+- Add `.env.local` to `.gitignore`
+
+### 2. Image Optimization
+**Challenge**: OMDb returns external image URLs from various sources
+
+**Current Solution**: The app uses `unoptimized={!movie.Poster.includes('media-amazon.com')}` to handle external images
+
+**Note**: Next.js Image optimization works best with configured domains in `next.config.ts`
+
+### 3. API Rate Limits
+**Issue**: Free OMDb API has rate limits (1,000 requests per day)
+
+**Impact**: Heavy usage could hit rate limits
+
+**Mitigation**: Consider implementing request caching or upgrading to paid API plan for production
+
+### 4. Client-Side State
+**Challenge**: Favorites and comparison lists use localStorage (client-side only)
+
+**Impact**:
+- State not shared across devices
+- No server-side rendering of favorites
+- Data lost if localStorage is cleared
+
+**Future Enhancement**: Consider implementing a backend database for user accounts and persistent state
+
+### 5. Error Handling
+**Current State**: Basic error handling implemented for API failures
+
+**Future Enhancement**: Could add more granular error messages and retry logic for network failures
+
+## Browser Compatibility
+
+- Modern browsers with ES6+ support
+- localStorage API required for favorites and comparison features
+- Tested on Chrome, Firefox, Safari, and Edge
+
+## Future Enhancements
+
+- User authentication and cloud-saved favorites
+- Advanced search filters (year, genre, rating)
+- Movie recommendations based on viewing history
+- Share favorite lists with shareable links
+- Dark/light theme toggle
+- Pagination for search results
+- Movie trailers integration (YouTube API)
+
+## Contributing
+
+Feel free to submit issues and enhancement requests!
+
+## License
+
+This project is created for educational purposes as part of the Flatiron School curriculum.
+
+## Acknowledgments
+
+- Movie data provided by [OMDb API](http://www.omdbapi.com/)
+- Built with [Next.js](https://nextjs.org)
+- Styled with [Tailwind CSS](https://tailwindcss.com)
