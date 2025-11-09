@@ -2,9 +2,15 @@
 
 import { MovieDetails, SearchResponse } from './types';
 
-// Your API key - needed for every request
-const API_KEY = '3c76c1c';
+// API key from environment variables for security
+// Make sure to set NEXT_PUBLIC_OMDB_API_KEY in your .env.local file
+const API_KEY = process.env.NEXT_PUBLIC_OMDB_API_KEY;
 const BASE_URL = 'http://www.omdbapi.com/';
+
+// Validate API key exists
+if (!API_KEY) {
+  console.error('⚠️ OMDB API key is missing! Please add NEXT_PUBLIC_OMDB_API_KEY to your .env.local file');
+}
 
 /**
  * Search for movies by title

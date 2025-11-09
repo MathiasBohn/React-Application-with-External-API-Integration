@@ -5,33 +5,34 @@ import { MovieDetails } from '@/lib/types';
 
 const COMPARISON_KEY = 'movieComparison'; // Key for localStorage
 
-export function useComparison() {
-  // State to hold up to 2 movies for comparison
-  const [comparisonMovies, setComparisonMovies] = useState<(MovieDetails | null)[]>([null, null]);
-  const [isLoaded, setIsLoaded] = useState(false);
+// Load initial state from localStorage
+const loadInitialState = (): (MovieDetails | null)[] => {
+  if (typeof window === 'undefined') {
+    return [null, null];
+  }
 
-  // Load comparison movies from localStorage when the hook first runs
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem(COMPARISON_KEY);
-      if (stored) {
-        try {
-          const parsed = JSON.parse(stored);
-          setComparisonMovies(parsed);
-        } catch (error) {
-          console.error('Failed to load comparison movies:', error);
-        }
-      }
-      setIsLoaded(true);
+  const stored = localStorage.getItem(COMPARISON_KEY);
+  if (stored) {
+    try {
+      return JSON.parse(stored);
+    } catch (error) {
+      console.error('Failed to load comparison movies:', error);
+      return [null, null];
     }
-  }, []);
+  }
+  return [null, null];
+};
+
+export function useComparison() {
+  // State to hold up to 2 movies for comparison - use lazy initialization
+  const [comparisonMovies, setComparisonMovies] = useState<(MovieDetails | null)[]>(loadInitialState);
 
   // Save comparison movies to localStorage whenever they change
   useEffect(() => {
-    if (isLoaded && typeof window !== 'undefined') {
+    if (typeof window !== 'undefined') {
       localStorage.setItem(COMPARISON_KEY, JSON.stringify(comparisonMovies));
     }
-  }, [comparisonMovies, isLoaded]);
+  }, [comparisonMovies]);
 
   // Add a movie to comparison (fills first empty slot)
   const addToComparison = (movie: MovieDetails) => {
@@ -45,6 +46,13 @@ export function useComparison() {
       // Both full, replace second slot
       setComparisonMovies([comparisonMovies[0], movie]);
     }
+  };
+
+  // Add a movie to a specific slot
+  const addToSlot = (movie: MovieDetails, slot: 0 | 1) => {
+    const newMovies = [...comparisonMovies];
+    newMovies[slot] = movie;
+    setComparisonMovies(newMovies as [MovieDetails | null, MovieDetails | null]);
   };
 
   // Remove a movie from comparison by index
@@ -70,6 +78,7 @@ export function useComparison() {
   return {
     comparisonMovies,
     addToComparison,
+    addToSlot,
     removeFromComparison,
     clearComparison,
     isInComparison,

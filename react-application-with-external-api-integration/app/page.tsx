@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { searchMovies } from '@/lib/omdb';
 import { MovieSearchResult } from '@/lib/types';
@@ -8,27 +8,43 @@ import MovieCard from '@/components/MovieCard';
 import { useFavorites } from '@/hooks/useFavorites';
 
 export default function Home() {
-  // State: 
+  // State:
   const [query, setQuery] = useState(''); // What user types in search box
   const [movies, setMovies] = useState<MovieSearchResult[]>([]); // Search results
   const [loading, setLoading] = useState(false); // Fetching data
   const [error, setError] = useState(''); // Any error messages
+  const [mounted, setMounted] = useState(false); // Track client-side hydration
 
   // Get favorites count
   const { favorites } = useFavorites();
+
+  // Track when component has mounted on client to prevent hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Normalize search query for better user experience
+  const normalizeQuery = (input: string): string => {
+    return input
+      .trim() // Remove leading/trailing whitespace
+      .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+      .toLowerCase(); // OMDb API is case-insensitive, but normalize for consistency
+  };
 
   // User submits  search
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault(); // Don't reload the page
 
-    if (!query.trim()) return;
+    const normalizedQuery = normalizeQuery(query);
+
+    if (!normalizedQuery) return;
 
     setLoading(true); // Show loading state
     setError(''); // Clear any previous errors
 
     try {
-      // Call our API function
-      const data = await searchMovies(query);
+      // Call our API function with normalized query
+      const data = await searchMovies(normalizedQuery);
 
       // Check if API found movies
       if (data.Response === 'True') {
@@ -37,7 +53,7 @@ export default function Home() {
         setError('No movies found. Try a different search.');
         setMovies([]); // Clear results
       }
-    } catch (err) {
+    } catch {
       setError('Something went wrong. Please try again.');
       setMovies([]);
     } finally {
@@ -67,25 +83,31 @@ export default function Home() {
               href="/favorites"
               className="px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-500 hover:to-red-600 font-semibold transition-all glow-red border border-red-500/30"
             >
-              ❤️ Favorites ({favorites.length})
+              ❤️ Favorites {mounted && `(${favorites.length})`}
             </Link>
           </div>
         </div>
 
         {/* Search Box */}
-        <form onSubmit={handleSearch} className="mb-12">
+        <form onSubmit={handleSearch} className="mb-12" role="search">
           <div className="max-w-3xl mx-auto relative">
+            <label htmlFor="movie-search" className="sr-only">
+              Search for movies, series, and episodes
+            </label>
             <input
+              id="movie-search"
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search for movies, series, episodes..."
               className="w-full px-6 py-4 bg-zinc-900 border-2 border-zinc-800 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-yellow-600 focus:ring-2 focus:ring-yellow-600/20 transition-all text-lg"
+              aria-label="Search for movies"
             />
             <button
               type="submit"
               disabled={loading}
               className="absolute right-2 top-1/2 -translate-y-1/2 px-8 py-2 bg-gradient-to-r from-yellow-500 to-yellow-600 text-black font-bold rounded-lg hover:from-yellow-400 hover:to-yellow-500 disabled:from-zinc-700 disabled:to-zinc-800 disabled:text-zinc-500 transition-all glow-gold"
+              aria-label={loading ? 'Searching for movies' : 'Search movies'}
             >
               {loading ? '⏳ Searching...' : '🔍 Search'}
             </button>

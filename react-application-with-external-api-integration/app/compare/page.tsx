@@ -1,15 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { searchMovies } from '@/lib/omdb';
+import { searchMovies, getMovieDetails } from '@/lib/omdb';
 import { MovieSearchResult, MovieDetails } from '@/lib/types';
 import { useComparison } from '@/hooks/useComparison';
 
 export default function ComparePage() {
   const {
     comparisonMovies,
+    addToSlot,
     removeFromComparison,
     clearComparison,
   } = useComparison();
@@ -18,27 +19,68 @@ export default function ComparePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<MovieSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
-  const [activeSlot, setActiveSlot] = useState<0 | 1 | null>(null); // Which slot to fill
+  const [loadingMovie, setLoadingMovie] = useState(false);
+  const [activeSlot, setActiveSlot] = useState<0 | 1 | null>(null);
+
+  // Ref for smooth scrolling to comparison section
+  const comparisonGridRef = useRef<HTMLDivElement>(null);
 
   const [movie1, movie2] = comparisonMovies;
+
+  // Normalize search query for better user experience
+  const normalizeQuery = (input: string): string => {
+    return input
+      .trim() // Remove leading/trailing whitespace
+      .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+      .toLowerCase(); // OMDb API is case-insensitive, but normalize for consistency
+  };
 
   // Handle search
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!searchQuery.trim() || activeSlot === null) return;
+
+    const normalizedQuery = normalizeQuery(searchQuery);
+
+    if (!normalizedQuery || activeSlot === null) return;
 
     setLoading(true);
     try {
-      const data = await searchMovies(searchQuery);
+      const data = await searchMovies(normalizedQuery);
       if (data.Response === 'True') {
         setSearchResults(data.Search.slice(0, 5));
       } else {
         setSearchResults([]);
       }
-    } catch (error) {
+    } catch {
       setSearchResults([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Handle selecting a movie from search results
+  const handleSelectMovie = async (movieResult: MovieSearchResult) => {
+    if (activeSlot === null) return;
+
+    setLoadingMovie(true);
+    try {
+      const movieDetails = await getMovieDetails(movieResult.imdbID);
+      if (movieDetails.Response === 'True') {
+        addToSlot(movieDetails, activeSlot);
+        closeSearch();
+
+        // Smooth scroll to comparison grid
+        setTimeout(() => {
+          comparisonGridRef.current?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center'
+          });
+        }, 100);
+      }
+    } catch (error) {
+      console.error('Failed to fetch movie details:', error);
+    } finally {
+      setLoadingMovie(false);
     }
   };
 
@@ -202,13 +244,14 @@ export default function ComparePage() {
         </div>
 
         {/* Two-column layout for comparison */}
-        <div className="grid lg:grid-cols-2 gap-8 mb-8">
+        <div ref={comparisonGridRef} className="grid lg:grid-cols-2 gap-8 mb-8">
           {/* Movie 1 */}
           <div>
             {movie1 ? <MovieCard movie={movie1} index={0} /> : <EmptySlot index={0} />}
           </div>
 
           {/* Movie 2 */}
+          
           <div>
             {movie2 ? <MovieCard movie={movie2} index={1} /> : <EmptySlot index={1} />}
           </div>
@@ -312,34 +355,48 @@ export default function ComparePage() {
 
         {/* Search Modal */}
         {activeSlot !== null && (
-          <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center p-4 z-50">
+          <div
+            className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center p-4 z-50"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="search-modal-title"
+          >
             <div className="bg-zinc-900 border-2 border-zinc-800 rounded-xl max-w-2xl w-full p-6 max-h-[80vh] overflow-y-auto">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-yellow-500">🎬 Select Movie {activeSlot + 1}</h2>
+                <h2 id="search-modal-title" className="text-2xl font-bold text-yellow-500">
+                  🎬 Select Movie {activeSlot + 1}
+                </h2>
                 <button
                   onClick={closeSearch}
                   className="text-zinc-400 hover:text-zinc-200 transition-colors"
+                  aria-label="Close search modal"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
               </div>
 
-              <form onSubmit={handleSearch} className="mb-6">
+              <form onSubmit={handleSearch} className="mb-6" role="search">
                 <div className="flex gap-2">
+                  <label htmlFor="compare-search" className="sr-only">
+                    Search for a movie to compare
+                  </label>
                   <input
+                    id="compare-search"
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search for a movie..."
                     className="flex-1 px-4 py-3 bg-zinc-950 border-2 border-zinc-800 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-600/20 transition-all"
                     autoFocus
+                    aria-label="Search for a movie"
                   />
                   <button
                     type="submit"
                     disabled={loading}
                     className="px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-500 hover:to-purple-600 disabled:from-zinc-700 disabled:to-zinc-800 disabled:text-zinc-500 font-semibold transition-all glow-purple"
+                    aria-label={loading ? 'Searching for movies' : 'Search movies'}
                   >
                     {loading ? '⏳ Searching...' : '🔍 Search'}
                   </button>
@@ -348,13 +405,13 @@ export default function ComparePage() {
 
               {searchResults.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-sm text-zinc-400 mb-3">Select a movie from results:</p>
+                  <p className="text-sm text-zinc-400 mb-3">Select a movie to add to comparison:</p>
                   {searchResults.map((result) => (
-                    <Link
+                    <button
                       key={result.imdbID}
-                      href={`/movie/${result.imdbID}`}
-                      onClick={closeSearch}
-                      className="block p-4 bg-zinc-950 rounded-lg hover:bg-zinc-800 border-2 border-zinc-800 hover:border-purple-600 transition-all"
+                      onClick={() => handleSelectMovie(result)}
+                      disabled={loadingMovie}
+                      className="w-full text-left p-4 bg-zinc-950 rounded-lg hover:bg-zinc-800 border-2 border-zinc-800 hover:border-purple-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <div className="flex gap-4">
                         <div className="relative w-16 h-24 flex-shrink-0">
@@ -378,10 +435,12 @@ export default function ComparePage() {
                         <div className="flex-1">
                           <p className="font-semibold text-yellow-500">{result.Title}</p>
                           <p className="text-sm text-zinc-400">{result.Year} • {result.Type}</p>
-                          <p className="text-xs text-purple-400 mt-2">Click to view details and add to comparison</p>
+                          <p className="text-xs text-purple-400 mt-2">
+                            {loadingMovie ? 'Adding to comparison...' : 'Click to add to comparison'}
+                          </p>
                         </div>
                       </div>
-                    </Link>
+                    </button>
                   ))}
                 </div>
               )}

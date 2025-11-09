@@ -5,34 +5,34 @@ import { MovieSearchResult } from '@/lib/types';
 
 const FAVORITES_KEY = 'movieFavorites'; // Key for localStorage
 
-export function useFavorites() {
-  // State to hold the list of favorite movies
-  const [favorites, setFavorites] = useState<MovieSearchResult[]>([]);
-  const [isLoaded, setIsLoaded] = useState(false); // Track if we've loaded from localStorage
+// Load initial state from localStorage
+const loadInitialFavorites = (): MovieSearchResult[] => {
+  if (typeof window === 'undefined') {
+    return [];
+  }
 
-  // Load favorites from localStorage when the hook first runs
-  useEffect(() => {
-    // Check if we're on the client (localStorage only works in browser)
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem(FAVORITES_KEY);
-      if (stored) {
-        try {
-          const parsed = JSON.parse(stored);
-          setFavorites(parsed);
-        } catch (error) {
-          console.error('Failed to load favorites:', error);
-        }
-      }
-      setIsLoaded(true); // Mark as loaded
+  const stored = localStorage.getItem(FAVORITES_KEY);
+  if (stored) {
+    try {
+      return JSON.parse(stored);
+    } catch (error) {
+      console.error('Failed to load favorites:', error);
+      return [];
     }
-  }, []); // Empty array means this only runs once when component mounts
+  }
+  return [];
+};
 
-  // Save favorites to localStorage whenever they change (but only after initial load)
+export function useFavorites() {
+  // State to hold the list of favorite movies - use lazy initialization
+  const [favorites, setFavorites] = useState<MovieSearchResult[]>(loadInitialFavorites);
+
+  // Save favorites to localStorage whenever they change
   useEffect(() => {
-    if (isLoaded && typeof window !== 'undefined') {
+    if (typeof window !== 'undefined') {
       localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
     }
-  }, [favorites, isLoaded]); // Runs whenever 'favorites' changes
+  }, [favorites]); // Runs whenever 'favorites' changes
 
   // Add a movie to favorites
   const addFavorite = (movie: MovieSearchResult) => {

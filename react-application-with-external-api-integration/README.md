@@ -10,6 +10,9 @@ A modern, cinematic movie search and comparison application built with Next.js 1
 - **Movie Comparison**: Compare multiple movies side-by-side to see ratings, plot, cast, and other details
 - **Responsive Design**: Beautiful, cinematic UI with Tailwind CSS 4 and film-themed styling
 - **Next.js App Router**: Modern Next.js architecture with Server and Client Components
+- **Error Boundary**: Graceful error handling prevents app crashes and provides helpful feedback
+- **Accessibility**: ARIA labels, semantic HTML, keyboard navigation, and screen reader support
+- **Environment-Based Configuration**: Secure API key management via environment variables
 
 ## Tech Stack
 
@@ -46,7 +49,17 @@ pnpm install
 bun install
 ```
 
-3. Run the development server:
+3. Set up environment variables:
+```bash
+# Copy the example environment file
+cp .env.example .env.local
+
+# Edit .env.local and add your OMDb API key
+# Get a free API key at: http://www.omdbapi.com/apikey.aspx
+NEXT_PUBLIC_OMDB_API_KEY=your_api_key_here
+```
+
+4. Run the development server:
 ```bash
 npm run dev
 # or
@@ -57,7 +70,7 @@ pnpm dev
 bun dev
 ```
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser to see the application.
+5. Open [http://localhost:3000](http://localhost:3000) in your browser to see the application.
 
 ### Available Scripts
 
@@ -101,9 +114,9 @@ bun dev
 ```
 react-application-with-external-api-integration/
 ├── app/
-│   ├── layout.tsx              # Root layout with fonts and metadata
+│   ├── layout.tsx              # Root layout with fonts, metadata, and ErrorBoundary
 │   ├── page.tsx                # Home page with movie search
-│   ├── globals.css             # Global Tailwind styles
+│   ├── globals.css             # Global Tailwind styles and accessibility utilities
 │   ├── movie/
 │   │   └── [imdbID]/
 │   │       └── page.tsx        # Dynamic route for movie details
@@ -112,13 +125,16 @@ react-application-with-external-api-integration/
 │   └── compare/
 │       └── page.tsx            # Movie comparison page
 ├── components/
-│   └── MovieCard.tsx           # Reusable movie card component
+│   ├── MovieCard.tsx           # Reusable movie card component
+│   └── ErrorBoundary.tsx       # Error boundary for graceful error handling
 ├── lib/
 │   ├── omdb.ts                 # OMDb API functions
 │   └── types.ts                # TypeScript type definitions
 ├── hooks/
 │   ├── useFavorites.ts         # Custom hook for favorites management
 │   └── useComparison.ts        # Custom hook for comparison feature
+├── .env.example                # Example environment variables
+├── .env.local                  # Local environment variables (gitignored)
 └── public/                     # Static assets
 ```
 
@@ -154,16 +170,14 @@ react-application-with-external-api-integration/
 
 ## Known Issues & Challenges
 
-### 1. API Key Management
-**Issue**: The OMDb API key is currently hardcoded in `lib/omdb.ts:6`
+### 1. API Key Management ✅ **RESOLVED**
+**Previous Issue**: The OMDb API key was hardcoded in `lib/omdb.ts`
 
-**Impact**: Security risk if repository is public; API key could be exposed and rate-limited
-
-**Recommended Solution**:
-- Create a `.env.local` file in the project root
-- Add: `NEXT_PUBLIC_OMDB_API_KEY=your_api_key_here`
-- Update `lib/omdb.ts` to use: `process.env.NEXT_PUBLIC_OMDB_API_KEY`
-- Add `.env.local` to `.gitignore`
+**Solution Implemented**:
+- API key now loaded from environment variables (`NEXT_PUBLIC_OMDB_API_KEY`)
+- `.env.example` file provided for easy setup
+- `.env.local` automatically ignored by git for security
+- See installation steps above for setup instructions
 
 ### 2. Image Optimization
 **Challenge**: OMDb returns external image URLs from various sources
@@ -189,10 +203,19 @@ react-application-with-external-api-integration/
 
 **Future Enhancement**: Consider implementing a backend database for user accounts and persistent state
 
-### 5. Error Handling
-**Current State**: Basic error handling implemented for API failures
+### 5. Error Handling ✅ **IMPROVED**
+**Current State**:
+- Error Boundary component catches and displays React errors gracefully
+- API error handling with user-friendly messages
+- Loading states for all async operations
+- Validation for missing environment variables
 
-**Future Enhancement**: Could add more granular error messages and retry logic for network failures
+**Implementation**:
+- `<ErrorBoundary>` wrapper in root layout prevents app crashes
+- Dedicated error UI with "Try Again" and "Back to Home" options
+- Detailed error information available for developers (expandable)
+
+**Future Enhancement**: Could add error reporting service integration (e.g., Sentry) and retry logic for network failures
 
 ## Browser Compatibility
 

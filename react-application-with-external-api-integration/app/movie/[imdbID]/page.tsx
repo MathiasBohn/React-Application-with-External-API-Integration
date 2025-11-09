@@ -35,7 +35,7 @@ export default function MovieDetailPage() {
         } else {
           setError('Movie not found');
         }
-      } catch (err) {
+      } catch {
         setError('Failed to load movie details');
       } finally {
         setLoading(false);
